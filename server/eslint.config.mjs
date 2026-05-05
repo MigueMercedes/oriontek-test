@@ -32,4 +32,13 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // Jest's expect.any/expect.objectContaining/etc. return `any`, which
+    // collides with strict no-unsafe-* rules in test files. The runtime
+    // behavior is fine, so relax these only here.
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+    },
+  },
 );

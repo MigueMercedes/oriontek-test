@@ -58,7 +58,9 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token inválido');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
     if (!user) {
       throw new UnauthorizedException('Usuario no encontrado');
     }
@@ -69,8 +71,10 @@ export class AuthService {
   private async signTokens(payload: TokenPayload) {
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET');
-    const accessExpires = this.config.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m';
-    const refreshExpires = this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
+    const accessExpires =
+      this.config.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m';
+    const refreshExpires =
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

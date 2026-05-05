@@ -68,7 +68,9 @@ export class ClientesService {
     }
 
     const incomingIds = new Set(
-      dto.direcciones.filter((d) => typeof d.id === 'number').map((d) => d.id as number),
+      dto.direcciones
+        .filter((d) => typeof d.id === 'number')
+        .map((d) => d.id as number),
     );
     const idsToDelete = existing.direcciones
       .filter((d) => !incomingIds.has(d.id))

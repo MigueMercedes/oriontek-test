@@ -7,6 +7,69 @@ import { AppModule } from './../src/app.module';
 import { HttpExceptionFilter } from './../src/common/filters/http-exception.filter';
 import { PrismaService } from './../src/prisma/prisma.service';
 
+interface ErrorBody {
+  status?: string;
+  message?: string;
+  errors?: unknown[];
+}
+
+interface AuthBody {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; email: string; name: string; password?: undefined };
+}
+
+interface MeBody {
+  user: { email: string };
+}
+
+interface Direccion {
+  id: number;
+  calle: string;
+  ciudad: string;
+  provincia: string;
+  codigoPostal?: string | null;
+}
+
+interface ClienteListItem {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  _count: { direcciones: number };
+}
+
+interface ClienteDetail {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono?: string | null;
+  direcciones: Direccion[];
+}
+
+interface DataBody<T> {
+  data: T;
+}
+
+interface MessageBody {
+  message: string;
+}
+
+interface DireccionWithCliente extends Direccion {
+  cliente: { id: number; nombre: string; apellido: string; email: string };
+}
+
+interface DashboardStats {
+  totalClientes: number;
+  totalDirecciones: number;
+  promedioDireccionesPorCliente: number;
+  nuevosUltimaSemana: number;
+  recientes: Array<ClienteListItem & { _count: { direcciones: number } }>;
+}
+
+const body = <T>(res: request.Response): T => res.body as T;
+
 const ADMIN_EMAIL = 'admin@oriontek.com';
 const ADMIN_PASSWORD = 'Admin123!';
 
@@ -73,7 +136,7 @@ describe('OrionTek API (e2e)', () => {
         .send({ email: ADMIN_EMAIL, password: 'wrongpassword' });
 
       expect(res.status).toBe(401);
-      expect(res.body.status).toBe('error');
+      expect(body<ErrorBody>(res).status).toBe('error');
     });
 
     it('POST /api/auth/login succeeds with valid credentials', async () => {
@@ -82,16 +145,17 @@ describe('OrionTek API (e2e)', () => {
         .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
 
       expect(res.status).toBe(200);
-      expect(res.body.accessToken).toEqual(expect.any(String));
-      expect(res.body.refreshToken).toEqual(expect.any(String));
-      expect(res.body.user).toMatchObject({
+      const auth = body<AuthBody>(res);
+      expect(auth.accessToken).toEqual(expect.any(String));
+      expect(auth.refreshToken).toEqual(expect.any(String));
+      expect(auth.user).toMatchObject({
         email: ADMIN_EMAIL,
         name: 'Admin OrionTek',
       });
-      expect(res.body.user.password).toBeUndefined();
+      expect(auth.user.password).toBeUndefined();
 
-      accessToken = res.body.accessToken;
-      refreshToken = res.body.refreshToken;
+      accessToken = auth.accessToken;
+      refreshToken = auth.refreshToken;
     });
 
     it('GET /api/auth/me without token returns 401', async () => {
@@ -105,7 +169,7 @@ describe('OrionTek API (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.user.email).toBe(ADMIN_EMAIL);
+      expect(body<MeBody>(res).user.email).toBe(ADMIN_EMAIL);
     });
   });
 
@@ -118,7 +182,11 @@ describe('OrionTek API (e2e)', () => {
           apellido: 'User',
           email: uniqueEmail,
           direcciones: [
-            { calle: 'Calle X', ciudad: 'Santo Domingo', provincia: 'Distrito Nacional' },
+            {
+              calle: 'Calle X',
+              ciudad: 'Santo Domingo',
+              provincia: 'Distrito Nacional',
+            },
           ],
         });
 
@@ -150,15 +218,16 @@ describe('OrionTek API (e2e)', () => {
         });
 
       expect(res.status).toBe(201);
-      expect(res.body.data).toMatchObject({
+      const created = body<DataBody<ClienteDetail>>(res).data;
+      expect(created).toMatchObject({
         nombre: 'Test',
         apellido: 'User',
         email: uniqueEmail,
       });
-      expect(res.body.data.direcciones).toHaveLength(2);
+      expect(created.direcciones).toHaveLength(2);
 
-      createdClienteId = res.body.data.id;
-      direccionToKeepId = res.body.data.direcciones[0].id;
+      createdClienteId = created.id;
+      direccionToKeepId = created.direcciones[0].id;
     });
 
     it('POST /api/clientes returns 409 on duplicate email', async () => {
@@ -169,13 +238,11 @@ describe('OrionTek API (e2e)', () => {
           nombre: 'Other',
           apellido: 'Person',
           email: uniqueEmail,
-          direcciones: [
-            { calle: 'X', ciudad: 'Y', provincia: 'Z' },
-          ],
+          direcciones: [{ calle: 'X', ciudad: 'Y', provincia: 'Z' }],
         });
 
       expect(res.status).toBe(409);
-      expect(res.body.message).toMatch(/email/i);
+      expect(body<ErrorBody>(res).message).toMatch(/email/i);
     });
 
     it('POST /api/clientes returns 400 when no direcciones provided', async () => {
@@ -190,7 +257,7 @@ describe('OrionTek API (e2e)', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.errors).toBeDefined();
+      expect(body<ErrorBody>(res).errors).toBeDefined();
     });
 
     it('GET /api/clientes lists clientes with _count.direcciones', async () => {
@@ -199,10 +266,11 @@ describe('OrionTek API (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      const found = res.body.data.find((c: any) => c.id === createdClienteId);
+      const list = body<DataBody<ClienteListItem[]>>(res).data;
+      expect(Array.isArray(list)).toBe(true);
+      const found = list.find((c) => c.id === createdClienteId);
       expect(found).toBeDefined();
-      expect(found._count.direcciones).toBe(2);
+      expect(found?._count.direcciones).toBe(2);
     });
 
     it('GET /api/clientes/:id returns the cliente with direcciones', async () => {
@@ -211,8 +279,9 @@ describe('OrionTek API (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.data.id).toBe(createdClienteId);
-      expect(res.body.data.direcciones).toHaveLength(2);
+      const cliente = body<DataBody<ClienteDetail>>(res).data;
+      expect(cliente.id).toBe(createdClienteId);
+      expect(cliente.direcciones).toHaveLength(2);
     });
 
     it('GET /api/clientes/:id returns 404 for unknown id', async () => {
@@ -257,22 +326,19 @@ describe('OrionTek API (e2e)', () => {
         });
 
       expect(res.status).toBe(200);
-      expect(res.body.data.nombre).toBe('Updated');
-      expect(res.body.data.email).toBe(updatedEmail);
-      expect(res.body.data.direcciones).toHaveLength(2);
+      const updated = body<DataBody<ClienteDetail>>(res).data;
+      expect(updated.nombre).toBe('Updated');
+      expect(updated.email).toBe(updatedEmail);
+      expect(updated.direcciones).toHaveLength(2);
 
-      const ids = res.body.data.direcciones.map((d: any) => d.id);
+      const ids = updated.direcciones.map((d) => d.id);
       expect(ids).toContain(direccionToKeepId);
 
-      const kept = res.body.data.direcciones.find(
-        (d: any) => d.id === direccionToKeepId,
-      );
-      expect(kept.calle).toBe('Calle Principal Renombrada');
+      const kept = updated.direcciones.find((d) => d.id === direccionToKeepId);
+      expect(kept?.calle).toBe('Calle Principal Renombrada');
 
-      const added = res.body.data.direcciones.find(
-        (d: any) => d.id !== direccionToKeepId,
-      );
-      expect(added.calle).toBe('Nueva Calle Agregada');
+      const added = updated.direcciones.find((d) => d.id !== direccionToKeepId);
+      expect(added?.calle).toBe('Nueva Calle Agregada');
     });
 
     it('DELETE /api/clientes/:id removes the cliente and the list reflects it', async () => {
@@ -281,13 +347,17 @@ describe('OrionTek API (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Cliente eliminado correctamente');
+      expect(body<MessageBody>(res).message).toBe(
+        'Cliente eliminado correctamente',
+      );
 
       const list = await request(server)
         .get('/api/clientes')
         .set('Authorization', `Bearer ${accessToken}`);
 
-      const found = list.body.data.find((c: any) => c.id === createdClienteId);
+      const found = body<DataBody<ClienteListItem[]>>(list).data.find(
+        (c) => c.id === createdClienteId,
+      );
       expect(found).toBeUndefined();
 
       // Mark as already deleted so afterAll skips it.
@@ -302,10 +372,11 @@ describe('OrionTek API (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      const list = body<DataBody<DireccionWithCliente[]>>(res).data;
+      expect(Array.isArray(list)).toBe(true);
 
-      if (res.body.data.length > 0) {
-        const first = res.body.data[0];
+      if (list.length > 0) {
+        const first = list[0];
         expect(first).toHaveProperty('calle');
         expect(first).toHaveProperty('ciudad');
         expect(first).toHaveProperty('provincia');
@@ -326,7 +397,8 @@ describe('OrionTek API (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.data).toEqual(
+      const stats = body<DataBody<DashboardStats>>(res).data;
+      expect(stats).toEqual(
         expect.objectContaining({
           totalClientes: expect.any(Number),
           totalDirecciones: expect.any(Number),
@@ -335,9 +407,9 @@ describe('OrionTek API (e2e)', () => {
           recientes: expect.any(Array),
         }),
       );
-      expect(res.body.data.recientes.length).toBeLessThanOrEqual(5);
-      if (res.body.data.recientes.length > 0) {
-        expect(res.body.data.recientes[0]).toHaveProperty('_count.direcciones');
+      expect(stats.recientes.length).toBeLessThanOrEqual(5);
+      if (stats.recientes.length > 0) {
+        expect(stats.recientes[0]).toHaveProperty('_count.direcciones');
       }
     });
   });
@@ -349,8 +421,9 @@ describe('OrionTek API (e2e)', () => {
         .send({ refreshToken });
 
       expect(res.status).toBe(200);
-      expect(res.body.accessToken).toEqual(expect.any(String));
-      expect(res.body.refreshToken).toEqual(expect.any(String));
+      const tokens = body<AuthBody>(res);
+      expect(tokens.accessToken).toEqual(expect.any(String));
+      expect(tokens.refreshToken).toEqual(expect.any(String));
     });
 
     it('POST /api/auth/refresh returns 401 with garbage token', async () => {
