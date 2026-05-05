@@ -1,40 +1,19 @@
 import {
-  Avatar,
   Badge,
   Box,
   Button,
-  Grid,
-  IconButton,
   Menu,
   MenuItem,
-  Paper,
-  Skeleton,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from "@mui/material";
-import {
-  BarChart3,
-  Filter,
-  MapPin,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Trash2,
-  TrendingUp,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { Filter, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
-import KpiCard from "../shared/components/KpiCard";
 import ConfirmDialog from "../shared/components/ConfirmDialog";
+import ClientesKpis from "../features/clientes/components/ClientesKpis";
+import ClientesTable from "../features/clientes/components/ClientesTable";
 import FiltersPopover, {
   DEFAULT_FILTERS,
   countActiveFilters,
@@ -45,7 +24,6 @@ import {
   useDeleteCliente,
 } from "../features/clientes/hooks";
 import { useDashboardStats } from "../features/dashboard/hooks";
-import { getAvatarColor, getInitials } from "../shared/lib/avatar";
 import type { ClienteListItem } from "../features/clientes/types";
 import { useSearchStore } from "../shared/state/searchStore";
 import { ApiError } from "../shared/lib/apiError";
@@ -109,14 +87,6 @@ export default function Clients() {
     }
     return sorted;
   }, [clientes, query, filters]);
-
-  const totalClientes = clientes?.length ?? 0;
-  const totalDirecciones =
-    clientes?.reduce((acc, c) => acc + (c._count?.direcciones ?? 0), 0) ?? 0;
-  const promedio =
-    totalClientes > 0
-      ? (totalDirecciones / totalClientes).toFixed(1)
-      : "0.0";
 
   const openMenu = (
     event: React.MouseEvent<HTMLButtonElement>,
@@ -216,191 +186,18 @@ export default function Clients() {
         </Stack>
       </Stack>
 
-      <Grid
-        container
-        spacing={2}
-        sx={{ mb: 3 }}
-      >
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <KpiCard
-            label="Total clientes"
-            value={totalClientes}
-            icon={Users}
-            loading={isLoading}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <KpiCard
-            label="Total direcciones"
-            value={totalDirecciones}
-            icon={MapPin}
-            loading={isLoading}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <KpiCard
-            label="Direcciones / cliente"
-            value={promedio}
-            icon={BarChart3}
-            loading={isLoading}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <KpiCard
-            label="Nuevos esta semana"
-            value={stats?.nuevosUltimaSemana ?? 0}
-            icon={TrendingUp}
-            loading={isLoading}
-          />
-        </Grid>
-      </Grid>
+      <ClientesKpis
+        clientes={clientes}
+        nuevosUltimaSemana={stats?.nuevosUltimaSemana ?? 0}
+        loading={isLoading}
+      />
 
-      <Paper>
-        {isLoading ? (
-          <Box sx={{ p: 2.5 }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Skeleton
-                key={i}
-                variant="rectangular"
-                height={56}
-                sx={{ mb: 1, borderRadius: 1 }}
-              />
-            ))}
-          </Box>
-        ) : totalClientes === 0 ? (
-          <Box sx={{ p: 5, textAlign: "center" }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                backgroundColor: "rgba(0,81,213,0.08)",
-                color: "secondary.main",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mb: 1.5,
-              }}
-            >
-              <UserPlus size={22} />
-            </Box>
-            <Typography
-              variant="h4"
-              sx={{ mb: 0.5 }}
-            >
-              No hay clientes aún
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: "text.secondary", mb: 2 }}
-            >
-              Crea el primer cliente para comenzar.
-            </Typography>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<Plus size={16} />}
-              onClick={() => navigate("/clients/new")}
-            >
-              Nuevo cliente
-            </Button>
-          </Box>
-        ) : filtered.length === 0 ? (
-          <Box sx={{ p: 5, textAlign: "center" }}>
-            <Typography
-              variant="h4"
-              sx={{ mb: 0.5 }}
-            >
-              Sin resultados
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: "text.secondary" }}
-            >
-              No encontramos clientes que coincidan con tu búsqueda.
-            </Typography>
-          </Box>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Cliente</TableCell>
-                  <TableCell>Teléfono</TableCell>
-                  <TableCell align="right">Direcciones</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filtered.map((c) => (
-                  <TableRow
-                    key={c.id}
-                    hover
-                    onClick={() => navigate(`/clients/${c.id}`)}
-                    sx={{ cursor: "pointer" }}
-                  >
-                    <TableCell>
-                      <Stack
-                        direction="row"
-                        spacing={1.25}
-                        sx={{ alignItems: "center" }}
-                      >
-                        <Avatar
-                          sx={{
-                            width: 36,
-                            height: 36,
-                            fontSize: "0.8125rem",
-                            fontWeight: 600,
-                            backgroundColor: getAvatarColor(c.id),
-                          }}
-                        >
-                          {getInitials(c.nombre, c.apellido)}
-                        </Avatar>
-                        <Box>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, color: "text.primary" }}
-                          >
-                            {c.nombre} {c.apellido}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary" }}
-                          >
-                            {c.email}
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {c.telefono || "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600 }}
-                      >
-                        {c._count?.direcciones ?? 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => openMenu(e, c)}
-                        aria-label="Acciones"
-                      >
-                        <MoreVertical size={16} />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
+      <ClientesTable
+        clientes={filtered}
+        loading={isLoading}
+        hasAnyCliente={(clientes?.length ?? 0) > 0}
+        onMenuOpen={openMenu}
+      />
 
       <Menu
         anchorEl={menuAnchor}
