@@ -90,7 +90,6 @@ export default function Dashboard() {
             label="Direcciones / cliente"
             value={promedio}
             icon={BarChart3}
-            caption="Promedio"
             loading={isLoading}
           />
         </Grid>
