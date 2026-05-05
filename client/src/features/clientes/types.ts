@@ -29,7 +29,7 @@ export interface ClienteDetail {
 }
 
 export interface DireccionPayload {
-  id?: string;
+  id?: string | number;
   calle: string;
   ciudad: string;
   provincia: string;

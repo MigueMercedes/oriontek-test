@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Badge,
   Box,
   Button,
   Grid,
@@ -34,6 +35,11 @@ import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import KpiCard from "../shared/components/KpiCard";
 import ConfirmDialog from "../shared/components/ConfirmDialog";
+import FiltersPopover, {
+  DEFAULT_FILTERS,
+  countActiveFilters,
+  type ClientesFilters,
+} from "../features/clientes/components/FiltersPopover";
 import {
   useClientes,
   useDeleteCliente,
@@ -58,18 +64,51 @@ export default function Clients() {
     null,
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [filtersAnchor, setFiltersAnchor] = useState<HTMLElement | null>(null);
+  const [filters, setFilters] = useState<ClientesFilters>(DEFAULT_FILTERS);
+
+  const activeFiltersCount = countActiveFilters(filters);
 
   const filtered = useMemo(() => {
     if (!clientes) return [];
     const q = query.trim().toLowerCase();
-    if (!q) return clientes;
-    return clientes.filter((c) =>
-      [c.nombre, c.apellido, c.email, c.telefono ?? ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [clientes, query]);
+
+    let list = q
+      ? clientes.filter((c) =>
+          [c.nombre, c.apellido, c.email, c.telefono ?? ""]
+            .join(" ")
+            .toLowerCase()
+            .includes(q),
+        )
+      : clientes;
+
+    if (filters.direcciones !== "all") {
+      list = list.filter((c) => {
+        const count = c._count?.direcciones ?? 0;
+        if (filters.direcciones === "none") return count === 0;
+        if (filters.direcciones === "one") return count === 1;
+        return count >= 2;
+      });
+    }
+
+    const sorted = [...list];
+    if (filters.sortBy === "oldest") {
+      sorted.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    } else if (filters.sortBy === "alpha") {
+      sorted.sort((a, b) =>
+        `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`),
+      );
+    } else {
+      sorted.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    }
+    return sorted;
+  }, [clientes, query, filters]);
 
   const totalClientes = clientes?.length ?? 0;
   const totalDirecciones =
@@ -148,13 +187,24 @@ export default function Clients() {
           direction="row"
           spacing={1.5}
         >
-          <Button
-            variant="outlined"
-            startIcon={<Filter size={16} />}
-            onClick={() => enqueueSnackbar("Filtros: próximamente", { variant: "info" })}
+          <Badge
+            badgeContent={activeFiltersCount}
+            color="secondary"
+            overlap="rectangular"
+            slotProps={{
+              badge: {
+                sx: { top: 6, right: 6, height: 18, minWidth: 18, fontSize: 10 },
+              },
+            }}
           >
-            Filtros
-          </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Filter size={16} />}
+              onClick={(e) => setFiltersAnchor(e.currentTarget)}
+            >
+              Filtros
+            </Button>
+          </Badge>
           <Button
             variant="contained"
             color="secondary"
@@ -382,6 +432,14 @@ export default function Clients() {
           Eliminar
         </MenuItem>
       </Menu>
+
+      <FiltersPopover
+        anchorEl={filtersAnchor}
+        open={Boolean(filtersAnchor)}
+        filters={filters}
+        onChange={setFilters}
+        onClose={() => setFiltersAnchor(null)}
+      />
 
       <ConfirmDialog
         open={confirmOpen}
