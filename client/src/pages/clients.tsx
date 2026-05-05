@@ -14,11 +14,12 @@ import { useSnackbar } from "notistack";
 import ConfirmDialog from "../shared/components/ConfirmDialog";
 import ClientesKpis from "../features/clientes/components/ClientesKpis";
 import ClientesTable from "../features/clientes/components/ClientesTable";
-import FiltersPopover, {
+import FiltersPopover from "../features/clientes/components/FiltersPopover";
+import {
   DEFAULT_FILTERS,
   countActiveFilters,
   type ClientesFilters,
-} from "../features/clientes/components/FiltersPopover";
+} from "../features/clientes/components/filters";
 import {
   useClientes,
   useDeleteCliente,
