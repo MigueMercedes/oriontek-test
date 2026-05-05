@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+build/
+.next/
+.turbo/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# coverage
+coverage/
+.nyc_output/
+
+# editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# tooling artifacts
+.playwright-mcp/
+test-results/
+playwright-report/
+playwright/.cache/
+playwright/.auth/
+
+# misc
+*.tgz
+.cache/
