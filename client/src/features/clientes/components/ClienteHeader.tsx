@@ -41,13 +41,16 @@ export default function ClienteHeader({
           >
             {getInitials(cliente.nombre, cliente.apellido)}
           </Avatar>
-          <Box>
-            <Typography variant="h2">
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="h2"
+              sx={{ overflowWrap: "anywhere" }}
+            >
               {cliente.nombre} {cliente.apellido}
             </Typography>
             <Typography
               variant="body2"
-              sx={{ color: "text.secondary" }}
+              sx={{ color: "text.secondary", overflowWrap: "anywhere" }}
             >
               {cliente.email}
               {cliente.telefono ? ` · ${cliente.telefono}` : ""}

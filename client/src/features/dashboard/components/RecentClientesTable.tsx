@@ -155,7 +155,11 @@ export default function RecentClientesTable({
                       </Avatar>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 600, color: "text.primary" }}
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.primary",
+                          overflowWrap: "anywhere",
+                        }}
                       >
                         {c.nombre} {c.apellido}
                       </Typography>

@@ -156,16 +156,20 @@ export default function ClientesTable({
                     >
                       {getInitials(c.nombre, c.apellido)}
                     </Avatar>
-                    <Box>
+                    <Box sx={{ minWidth: 0 }}>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 600, color: "text.primary" }}
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.primary",
+                          overflowWrap: "anywhere",
+                        }}
                       >
                         {c.nombre} {c.apellido}
                       </Typography>
                       <Typography
                         variant="caption"
-                        sx={{ color: "text.secondary" }}
+                        sx={{ color: "text.secondary", overflowWrap: "anywhere" }}
                       >
                         {c.email}
                       </Typography>

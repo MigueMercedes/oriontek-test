@@ -32,7 +32,15 @@ export default function ClientDetail() {
   const { mutate: deleteCliente, isPending: isDeleting } = useDeleteCliente();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  if (error instanceof ApiError && error.status === 404) {
+  if (error instanceof ApiError) {
+    const isInvalidId = error.status === 400;
+    const title = isInvalidId
+      ? "Identificador no válido"
+      : "Cliente no encontrado";
+    const description = isInvalidId
+      ? "El identificador en la URL no es válido. Vuelve al listado para continuar."
+      : "El cliente que buscas no existe o fue eliminado.";
+
     return (
       <Box>
         <Paper sx={{ p: 5, textAlign: "center" }}>
@@ -40,13 +48,13 @@ export default function ClientDetail() {
             variant="h2"
             sx={{ mb: 1 }}
           >
-            Cliente no encontrado
+            {title}
           </Typography>
           <Typography
             variant="body2"
             sx={{ color: "text.secondary", mb: 2 }}
           >
-            El cliente que buscas no existe o fue eliminado.
+            {description}
           </Typography>
           <Button
             variant="contained"
@@ -79,6 +87,7 @@ export default function ClientDetail() {
   }
 
   const onConfirmDelete = () => {
+    if (isDeleting) return;
     deleteCliente(cliente.id, {
       onSuccess: () => {
         enqueueSnackbar("Cliente eliminado", { variant: "success" });
@@ -105,7 +114,11 @@ export default function ClientDetail() {
         </MuiLink>
         <Typography
           variant="body2"
-          sx={{ color: "text.primary", fontWeight: 600 }}
+          sx={{
+            color: "text.primary",
+            fontWeight: 600,
+            overflowWrap: "anywhere",
+          }}
         >
           {cliente.nombre} {cliente.apellido}
         </Typography>

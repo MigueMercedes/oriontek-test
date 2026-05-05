@@ -114,7 +114,7 @@ export default function Clients() {
   };
 
   const onConfirmDelete = () => {
-    if (!activeCliente) return;
+    if (!activeCliente || isDeleting) return;
     deleteCliente(activeCliente.id, {
       onSuccess: () => {
         enqueueSnackbar("Cliente eliminado", { variant: "success" });
